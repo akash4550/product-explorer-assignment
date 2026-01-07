@@ -30,9 +30,16 @@ RUN npm install
 # Install Playwright browsers
 RUN npx playwright install chromium
 
+# ... (previous lines)
+
 COPY . .
 
+# 🚨 ADD THIS LINE to ensure the CSV is in the right place
+COPY books_data.csv ./books_data.csv
+
 RUN npm run build
+
+# ... (rest of the file)
 
 EXPOSE 3000
 
