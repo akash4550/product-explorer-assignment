@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # 1. The Database (Matches your .env variables)
   postgres:
     image: postgres:15-alpine
     container_name: product_explorer_db
@@ -20,9 +21,46 @@ services:
       timeout: 5s
       retries: 5
 
+  # 2. The Backend API
   backend:
     build: ./backend
     container_name: product_explorer_api
     restart: always
     ports:
-      - "300
+      - "3000:3000"
+    environment:
+      # These override your local .env file to work inside Docker
+      - DB_TYPE=postgres
+      - DB_HOST=postgres       # Connects to the service name above
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASS=postgres
+      - DB_NAME=product_explorer
+      - PORT=3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  # 3. The Frontend UI
+  frontend:
+    build: ./frontend
+    container_name: product_explorer_ui
+    restart: always
+    ports:
+      - "3001:3000" # Frontend accessible at localhost:3001
+    environment:
+      # Tells the frontend (browser) where to find the API
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
+    depends_on:
+      - backend
+    networks:
+      - app_network
+
+volumes:
+  postgres_data:
+
+networks:
+  app_network:
+    driver: bridge
