@@ -36,4 +36,5 @@ RUN npm run build
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start:prod"]
+# 🚨 UPDATED LINE: Run seed, THEN start the app
+CMD ["/bin/sh", "-c", "npm run seed && npm run start:prod"]
