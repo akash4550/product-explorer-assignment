@@ -30,12 +30,20 @@ async function seed() {
     await detailRepo.clear();
     await productRepo.clear();
 
-    const csvPath = path.join(__dirname, '../books_data.csv');
+    let csvPath = path.join(process.cwd(), 'books_data.csv');
+    
+    if (!fs.existsSync(csvPath)) {
+        // Fallback for different execution environments
+        csvPath = path.join(__dirname, '../books_data.csv');
+    }
     
     if (!fs.existsSync(csvPath)) {
         console.error(`❌ CSV not found at: ${csvPath}`);
+        console.log("Current directory:", process.cwd());
+        console.log("Files in current directory:", fs.readdirSync(process.cwd()));
         process.exit(1);
     }
+    
 
     const csvContent = fs.readFileSync(csvPath, 'utf-8');
     const records = parse(csvContent, {
