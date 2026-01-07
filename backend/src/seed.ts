@@ -6,6 +6,7 @@ import * as path from 'path';
 import { parse } from 'csv-parse/sync';
 
 async function seed() {
+  // 1. Determine environment and database type
   const isPostgres = !!process.env.POSTGRES_HOST;
 
   const dataSource = new DataSource({
@@ -20,48 +21,57 @@ async function seed() {
   });
 
   try {
+    console.log(`🌱 Connecting to ${isPostgres ? 'Postgres' : 'SQLite'} database...`);
     await dataSource.initialize();
     console.log(`✅ Connected to database.`);
 
     const productRepo = dataSource.getRepository(Product);
     const detailRepo = dataSource.getRepository(ProductDetail);
 
-    // 🚨 FIX: Using clear() instead of delete({}) to bypass the safety error
+    // 2. Clear existing data safely
     await detailRepo.clear();
     await productRepo.clear();
 
-    // Replace your current csvPath logic with this:
-const csvPath = path.join(process.cwd(), 'books_data.csv');
+    // 3. Robust Path Resolution for CSV
+    let csvPath = path.join(process.cwd(), 'books_data.csv');
+    
+    if (!fs.existsSync(csvPath)) {
+        // Fallback for different execution environments (Docker vs Local)
+        csvPath = path.join(__dirname, '../books_data.csv');
+    }
 
-if (!fs.existsSync(csvPath)) {
-    console.error(`❌ CSV not found at: ${csvPath}`);
-    // This will help us debug if it fails again
-    console.log("Looking in:", __dirname); 
-    process.exit(1);
-}
-    
-    
-    
+    if (!fs.existsSync(csvPath)) {
+      console.error(`❌ CSV not found at: ${csvPath}`);
+      console.log("Current working directory:", process.cwd());
+      console.log("Files in directory:", fs.readdirSync(process.cwd()));
+      process.exit(1);
+    }
 
+    console.log(`📂 Reading CSV from: ${csvPath}`);
     const csvContent = fs.readFileSync(csvPath, 'utf-8');
     const records = parse(csvContent, {
       columns: true,
       skip_empty_lines: true,
     });
 
+    // 4. Iterate and save records with defensive parsing
     for (const record of records) {
+      // Clean and parse price (default to 0 if missing or invalid)
+      const rawPrice = record.Price || '0';
+      const parsedPrice = parseFloat(rawPrice.replace(/[^0-9.]/g, '')) || 0;
+
       const product = productRepo.create({
-        title: record.Title,
-        image_url: record.image, 
-        price: parseFloat(record.Price.replace(/[^0-9.]/g, '')) || 0,
+        title: record.Title || 'Unknown Title',
+        image_url: record.image || '', 
+        price: parsedPrice,
         url: 'https://www.worldofbooks.com',
       } as any); 
       
       const savedProduct = await productRepo.save(product);
 
       const detail = detailRepo.create({
-        description: record.Description,
-        author: record.Author,
+        description: record.Description || '',
+        author: record.Author || 'Unknown Author',
         product: savedProduct,
       } as any);
       
