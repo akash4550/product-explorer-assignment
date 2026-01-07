@@ -6,22 +6,31 @@ import * as path from 'path';
 import { parse } from 'csv-parse/sync';
 
 async function seed() {
-  // 1. Determine environment and database type
-  const isPostgres = !!process.env.POSTGRES_HOST;
+  // 1. Determine environment and database type (Support both naming conventions)
+  const dbHost = process.env.POSTGRES_HOST || process.env.DB_HOST;
+  const dbPort = process.env.POSTGRES_PORT || process.env.DB_PORT || '5432';
+  const dbUser = process.env.POSTGRES_USER || process.env.DB_USER;
+  const dbPass = process.env.POSTGRES_PASSWORD || process.env.DB_PASS;
+  const dbName = process.env.POSTGRES_DB || process.env.DB_NAME;
+
+  const isPostgres = !!dbHost;
 
   const dataSource = new DataSource({
     type: isPostgres ? 'postgres' : 'sqlite',
-    database: isPostgres ? process.env.POSTGRES_DB : 'shopping.sqlite',
-    host: process.env.POSTGRES_HOST,
-    port: parseInt(process.env.POSTGRES_PORT || '5432'),
-    username: process.env.POSTGRES_USER,
-    password: process.env.POSTGRES_PASSWORD,
+    database: isPostgres ? dbName : 'shopping.sqlite',
+    host: dbHost,
+    port: parseInt(dbPort),
+    username: dbUser,
+    password: dbPass,
     entities: [Product, ProductDetail],
     synchronize: true, 
   });
 
   try {
     console.log(`🌱 Connecting to ${isPostgres ? 'Postgres' : 'SQLite'} database...`);
+    if (isPostgres) {
+       console.log(`   Host: ${dbHost}, Port: ${dbPort}, User: ${dbUser}, DB: ${dbName}`);
+    }
     await dataSource.initialize();
     console.log(`✅ Connected to database.`);
 
