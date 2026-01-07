@@ -30,19 +30,17 @@ async function seed() {
     await detailRepo.clear();
     await productRepo.clear();
 
-    let csvPath = path.join(process.cwd(), 'books_data.csv');
+    // Replace your current csvPath logic with this:
+const csvPath = path.join(process.cwd(), 'books_data.csv');
+
+if (!fs.existsSync(csvPath)) {
+    console.error(`❌ CSV not found at: ${csvPath}`);
+    // This will help us debug if it fails again
+    console.log("Looking in:", __dirname); 
+    process.exit(1);
+}
     
-    if (!fs.existsSync(csvPath)) {
-        // Fallback for different execution environments
-        csvPath = path.join(__dirname, '../books_data.csv');
-    }
     
-    if (!fs.existsSync(csvPath)) {
-        console.error(`❌ CSV not found at: ${csvPath}`);
-        console.log("Current directory:", process.cwd());
-        console.log("Files in current directory:", fs.readdirSync(process.cwd()));
-        process.exit(1);
-    }
     
 
     const csvContent = fs.readFileSync(csvPath, 'utf-8');

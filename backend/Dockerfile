@@ -21,23 +21,20 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
-
+# ... after WORKDIR /usr/src/app
 COPY package.json package-lock.json* ./
-
-# Use install to avoid lockfile issues
 RUN npm install
 
-# Install Playwright browsers
-RUN npx playwright install chromium
-
-# ... (previous lines)
-
-COPY . .
-
-# 🚨 ADD THIS LINE to ensure the CSV is in the right place
+# 🚨 ADD THIS LINE to copy the CSV specifically
 COPY books_data.csv ./books_data.csv
 
+COPY . .
 RUN npm run build
+# ...
+
+RUN npm run build
+
+# ... (rest of the file)
 
 # ... (rest of the file)
 
