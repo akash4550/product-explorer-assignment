@@ -1,12 +1,7 @@
-# Start with the lightweight Node image
-FROM node:18-slim
+FROM node:20-bookworm
 
-# 1. Install System Dependencies for Playwright (Chromium)
-# We need these libraries so the headless browser can actually run inside Linux
-# Added: ca-certificates (for HTTPS) and fonts-liberation (for text rendering)
+# 1. Install system dependencies for Playwright
 RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    fonts-liberation \
     libnss3 \
     libnspr4 \
     libatk1.0-0 \
@@ -17,30 +12,27 @@ RUN apt-get update && apt-get install -y \
     libxcomposite1 \
     libxdamage1 \
     libxfixes3 \
-    libxrandr2 \
+    librandr2 \
     libgbm1 \
     libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
 
-# 2. Layer Caching: Copy package files first
 COPY package.json package-lock.json* ./
 
-# 3. Install Node dependencies
-RUN npm ci --prefer-offline --no-audit
+# 🚨 CHANGE THIS LINE: Use 'install' instead of 'ci' to bypass lockfile mismatch
+RUN npm install
 
-# 4. Install Playwright Browsers (Chromium only to save space)
+# Install Playwright browsers
 RUN npx playwright install chromium
 
-# 5. Copy Application Code
 COPY . .
 
-# 6. Build the NestJS application
 RUN npm run build
 
-# 7. Expose the port
 EXPOSE 3000
 
-# 8. Start the application
-CMD ["node", "dist/main.js"]
+CMD ["npm", "run", "start:prod"]
