@@ -6,7 +6,6 @@ import * as path from 'path';
 import { parse } from 'csv-parse/sync';
 
 async function seed() {
-  // 1. Determine environment and database type
   const isPostgres = !!process.env.POSTGRES_HOST;
 
   const dataSource = new DataSource({
@@ -28,22 +27,16 @@ async function seed() {
     const productRepo = dataSource.getRepository(Product);
     const detailRepo = dataSource.getRepository(ProductDetail);
 
-    // 2. Clear existing data safely
     await detailRepo.clear();
     await productRepo.clear();
 
-    // 3. Robust Path Resolution for CSV
     let csvPath = path.join(process.cwd(), 'books_data.csv');
-    
     if (!fs.existsSync(csvPath)) {
-        // Fallback for different execution environments (Docker vs Local)
         csvPath = path.join(__dirname, '../books_data.csv');
     }
 
     if (!fs.existsSync(csvPath)) {
       console.error(`❌ CSV not found at: ${csvPath}`);
-      console.log("Current working directory:", process.cwd());
-      console.log("Files in directory:", fs.readdirSync(process.cwd()));
       process.exit(1);
     }
 
@@ -54,16 +47,19 @@ async function seed() {
       skip_empty_lines: true,
     });
 
-    // 4. Iterate and save records with defensive parsing
     for (const record of records) {
-      // Clean and parse price (default to 0 if missing or invalid)
       const rawPrice = record.Price || '0';
       const parsedPrice = parseFloat(rawPrice.replace(/[^0-9.]/g, '')) || 0;
 
+      // 🚨 FIX: Generate a random product_id to satisfy the NOT NULL constraint
+      const generatedId = `book-${Math.random().toString(36).substr(2, 9)}`;
+
       const product = productRepo.create({
+        product_id: generatedId, // Added this line
         title: record.Title || 'Unknown Title',
         image_url: record.image || '', 
         price: parsedPrice,
+        name: 'Book',
         url: 'https://www.worldofbooks.com',
       } as any); 
       
