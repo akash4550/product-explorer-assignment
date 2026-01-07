@@ -1,0 +1,11 @@
+# frontend/netlify.toml
+
+[build]
+  # The command to build your app
+  command = "npm run build"
+  # The directory where Next.js outputs files
+  publish = ".next"
+
+[[plugins]]
+  # 🚨 This is the magic plugin that fixes 404s
+  package = "@netlify/plugin-nextjs"
