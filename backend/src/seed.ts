@@ -1,89 +1,82 @@
-import 'reflect-metadata';
-import * as dotenv from 'dotenv';
-import * as path from 'path';
-import * as fs from 'fs';
 import { DataSource } from 'typeorm';
-import { parse } from 'csv-parse';
 import { Product } from './products/product.entity';
 import { ProductDetail } from './products/product-detail.entity';
+import * as fs from 'fs';
+import * as path from 'path';
+import { parse } from 'csv-parse/sync';
 
-// 1. Load Environment Variables
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+async function seed() {
+  // 🔍 LOGIC: Only use Postgres if the HOST variable exists (Render Prod)
+  // Otherwise, FORCE SQLite (Local & Render Free Tier)
+  const isPostgres = !!process.env.POSTGRES_HOST;
 
-// 2. Determine DB Type (SQLite vs Postgres)
-const isSqlite = process.env.DB_TYPE === 'sqlite';
+  console.log(`🌱 Detected environment: ${isPostgres ? 'Postgres' : 'SQLite'}`);
 
-const AppDataSource = new DataSource({
-  type: isSqlite ? 'sqlite' : 'postgres',
-  database: isSqlite 
-    ? path.resolve(__dirname, '../data.sqlite') 
-    : (process.env.DB_NAME || 'product_explorer'),
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT) || 5432,
-  username: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  entities: [Product, ProductDetail],
-  synchronize: true, // Auto-create tables if missing
-});
+  const dataSource = new DataSource({
+    type: isPostgres ? 'postgres' : 'sqlite',
+    database: isPostgres ? process.env.POSTGRES_DB : 'shopping.sqlite',
+    host: process.env.POSTGRES_HOST,
+    port: parseInt(process.env.POSTGRES_PORT || '5432'),
+    username: process.env.POSTGRES_USER,
+    password: process.env.POSTGRES_PASSWORD,
+    entities: [Product, ProductDetail],
+    synchronize: true, 
+  });
 
-async function runSeed() {
   try {
-    console.log(`🌱 Connecting to ${isSqlite ? 'SQLite' : 'Postgres'} database...`);
-    await AppDataSource.initialize();
-    
-    const productRepo = AppDataSource.getRepository(Product);
+    await dataSource.initialize();
+    console.log(`✅ Connected to database.`);
 
-    // 3. Robust Path Resolution (Points to ROOT folder)
-    const csvPath = path.resolve(__dirname, '../../products_fixed_schema.csv');
+    const productRepo = dataSource.getRepository(Product);
+    const detailRepo = dataSource.getRepository(ProductDetail);
+
+    // Clear existing data to avoid duplicates
+    await detailRepo.delete({});
+    await productRepo.delete({});
+
+    // 📂 Read CSV (Adjusted path to match Docker structure)
+    // In Docker, code is in /usr/src/app/src, so we go up one level to find the CSV
+    const csvPath = path.join(__dirname, '../books_data.csv');
     
     if (!fs.existsSync(csvPath)) {
-      console.error(`❌ CSV file not found at: ${csvPath}`);
-      console.error('   Please ensure "products_fixed_schema.csv" is in the ROOT folder.');
-      process.exit(1);
+        console.error(`❌ CSV not found at: ${csvPath}`);
+        // Fallback check for local development
+        if (fs.existsSync(path.join(__dirname, '../../books_data.csv'))) {
+            console.log("Found CSV in root (local dev path)");
+        }
     }
 
     console.log(`📂 Reading CSV from: ${csvPath}`);
-    
-    const parser = fs
-      .createReadStream(csvPath)
-      .pipe(parse({ columns: true, skip_empty_lines: true, trim: true }));
+    const csvContent = fs.readFileSync(csvPath, 'utf-8');
+    const records = parse(csvContent, {
+      columns: true,
+      skip_empty_lines: true,
+    });
 
-    let count = 0;
-
-    for await (const record of parser) {
-      // Map CSV columns to Entity fields
-      const productData: Partial<Product> = {
-        product_id: record.product_id || record.id || `csv-${Math.random().toString(36).substr(2, 9)}`,
-        title: record.title || 'Untitled Product',
-        author: record.author || null,
-        // Safely parse price, removing currency symbols if present
-        price: record.price ? parseFloat(record.price.replace(/[^0-9.]/g, '')) : 0,
-        name: record.name || record.category || 'Uncategorized', // Matches 'CategoryPills' logic
-        image_url: record.image_url || null,
-      };
-
-      // Upsert Logic (Check by product_id)
-      const existing = await productRepo.findOne({ 
-        where: { product_id: productData.product_id } 
+    for (const record of records) {
+      // Map CSV columns correctly
+      const product = productRepo.create({
+        title: record.Title,
+        imageUrl: record.image, // Matches your CSV header 'image'
+        price: record.Price,
+        url: 'https://www.worldofbooks.com', // Placeholder URL
       });
+      const savedProduct = await productRepo.save(product);
 
-      if (existing) {
-        productRepo.merge(existing, productData);
-        await productRepo.save(existing);
-      } else {
-        const newProduct = productRepo.create(productData);
-        await productRepo.save(newProduct);
-      }
-      count++;
+      const detail = detailRepo.create({
+        description: record.Description,
+        author: record.Author,
+        product: savedProduct,
+      });
+      await detailRepo.save(detail);
     }
 
-    console.log(`✅ Seeding complete! Processed ${count} records.`);
-    process.exit(0);
-
+    console.log(`🎉 Seeding complete! Processed ${records.length} records.`);
+    await dataSource.destroy();
   } catch (error) {
     console.error('🔥 Seeding failed:', error);
     process.exit(1);
   }
 }
 
-runSeed();
+seed();
