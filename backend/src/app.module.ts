@@ -1,47 +1,43 @@
+// ... other imports
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { ProductsModule } from './products/products.module';
+import { Product } from './products/product.entity';
+import { ProductDetail } from './products/product-detail.entity';
 
 @Module({
   imports: [
-    // 1. Load .env file globally so all modules can access it
-    ConfigModule.forRoot({ 
-      isGlobal: true,
-      envFilePath: '.env', // Explicitly look for .env
-    }),
-
-    // 2. Configure Database asynchronously (waits for ConfigModule to finish loading)
+    ConfigModule.forRoot(),
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => {
-        const isSqlite = configService.get<string>('DB_TYPE') === 'sqlite';
+      useFactory: () => {
+        // 🚨 LOGIC FIX:
+        // Only use Postgres if a Host is explicitly provided.
+        // Otherwise, fallback to SQLite (even in Production).
+        const isPostgres = !!process.env.POSTGRES_HOST;
 
-        if (isSqlite) {
+        if (isPostgres) {
           return {
-            type: 'sqlite',
-            database: configService.get<string>('SQLITE_FILE') || 'data.sqlite',
-            autoLoadEntities: true,
-            synchronize: true, // ⚠️ Auto-creates tables (Perfect for dev/interviews)
+            type: 'postgres',
+            host: process.env.POSTGRES_HOST,
+            port: parseInt(process.env.POSTGRES_PORT || '5432'),
+            username: process.env.POSTGRES_USER,
+            password: process.env.POSTGRES_PASSWORD,
+            database: process.env.POSTGRES_DB,
+            entities: [Product, ProductDetail],
+            synchronize: true, // Auto-create tables
           };
         }
 
-        // Production / Docker Configuration
+        // Default to SQLite (For Render Free Tier)
         return {
-          type: 'postgres',
-          host: configService.get<string>('DB_HOST'),
-          port: configService.get<number>('DB_PORT') || 5432,
-          username: configService.get<string>('DB_USER'),
-          password: configService.get<string>('DB_PASS'),
-          database: configService.get<string>('DB_NAME'),
-          autoLoadEntities: true,
-          synchronize: true, // Note: In real production, disable this and use Migrations
+          type: 'sqlite',
+          database: 'shopping.sqlite',
+          entities: [Product, ProductDetail],
+          synchronize: true,
         };
       },
     }),
-
-    // 3. Import Feature Modules
     ProductsModule,
   ],
 })
