@@ -24,7 +24,9 @@ WORKDIR /usr/src/app
 # ... after WORKDIR /usr/src/app
 COPY package.json package-lock.json* ./
 RUN npm install
-
+# ... after npm install
+ENV PLAYWRIGHT_BROWSERS_PATH=/usr/src/app/ms-playwright
+RUN npx playwright install --with-deps chromium
 # 🚨 ADD THIS LINE to copy the CSV specifically
 COPY books_data.csv ./books_data.csv
 

@@ -6,6 +6,7 @@ import * as path from 'path';
 import { parse } from 'csv-parse/sync';
 
 async function seed() {
+  // 1. Determine environment and database type
   const isPostgres = !!process.env.POSTGRES_HOST;
 
   const dataSource = new DataSource({
@@ -27,9 +28,11 @@ async function seed() {
     const productRepo = dataSource.getRepository(Product);
     const detailRepo = dataSource.getRepository(ProductDetail);
 
+    // 2. Clear existing data safely
     await detailRepo.clear();
     await productRepo.clear();
 
+    // 3. Robust Path Resolution for CSV in Docker/Render
     let csvPath = path.join(process.cwd(), 'books_data.csv');
     if (!fs.existsSync(csvPath)) {
         csvPath = path.join(__dirname, '../books_data.csv');
@@ -37,6 +40,7 @@ async function seed() {
 
     if (!fs.existsSync(csvPath)) {
       console.error(`❌ CSV not found at: ${csvPath}`);
+      console.log("Current working directory:", process.cwd());
       process.exit(1);
     }
 
@@ -47,17 +51,29 @@ async function seed() {
       skip_empty_lines: true,
     });
 
+    if (records.length > 0) {
+      console.log("📊 CSV Headers detected:", Object.keys(records[0]));
+    }
+
+    // 4. Iterate and save records with flexible header mapping
     for (const record of records) {
-      const rawPrice = record.Price || '0';
+      // Clean and parse price (fallback to common variations of header names)
+      const rawPrice = record.Price || record.price || '0';
       const parsedPrice = parseFloat(rawPrice.replace(/[^0-9.]/g, '')) || 0;
 
-      // 🚨 FIX: Generate a random product_id to satisfy the NOT NULL constraint
+      // Handle common CSV header variations
+      const title = record.Title || record.title || record.name || 'Unknown Title';
+      const image = record.image || record.image_url || record.Image || '';
+      const author = record.Author || record.author || 'Unknown Author';
+      const description = record.Description || record.description || '';
+
+      // Generate unique product_id to satisfy NOT NULL constraints
       const generatedId = `book-${Math.random().toString(36).substr(2, 9)}`;
 
       const product = productRepo.create({
-        product_id: generatedId, // Added this line
-        title: record.Title || 'Unknown Title',
-        image_url: record.image || '', 
+        product_id: generatedId,
+        title: title,
+        image_url: image, 
         price: parsedPrice,
         name: 'Book',
         url: 'https://www.worldofbooks.com',
@@ -66,8 +82,8 @@ async function seed() {
       const savedProduct = await productRepo.save(product);
 
       const detail = detailRepo.create({
-        description: record.Description || '',
-        author: record.Author || 'Unknown Author',
+        description: description,
+        author: author,
         product: savedProduct,
       } as any);
       
