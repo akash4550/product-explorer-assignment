@@ -1,7 +1,6 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 
-// 1. Define the shape of your data for Type Safety
 interface Product {
   id: string;
   product_id: string;
@@ -9,25 +8,19 @@ interface Product {
   author: string;
   price: number;
   image_url: string;
-  name: string; // Category
+  name: string;
   details?: {
     description: string;
     specs: Record<string, any>;
   }[];
 }
 
-// 2. Fetch logic with Docker Networking fix
 async function getProduct(id: string): Promise<Product | null> {
-  // 🚨 CRITICAL FIX: 
-  // When running inside Docker, we must use the service name "http://backend:3000".
-  // When running locally, we use "http://localhost:3000".
-  // This logic checks if we are in a container environment (usually inferred, but hardcoding the docker url is safest for submission).
-  
-  const baseUrl = process.env.INTERNAL_API_URL || 'http://backend:3000/api'; // Docker Service URL
-  
+  const baseUrl = process.env.INTERNAL_API_URL || 'http://backend:3000/api';
+
   try {
     const res = await fetch(`${baseUrl}/products/${id}`, {
-      cache: 'no-store', // Always fetch fresh data (Live Scraping)
+      cache: 'no-store',
     });
 
     if (!res.ok) return null;
@@ -42,23 +35,18 @@ export default async function ProductPage({ params }: { params: { id: string } }
   const product = await getProduct(params.id);
 
   if (!product) {
-    notFound(); // Triggers the Next.js 404 UI
+    notFound();
   }
 
-  // Safely grab the first detail object (Assuming One-to-Many relation)
-  // If your entity uses @OneToOne, this might need to be `product.detail`
   const detail = product.details && product.details.length > 0 ? product.details[0] : null;
 
   return (
     <div className="max-w-5xl mx-auto p-8">
-      {/* Breadcrumb / Back Button */}
       <a href="/" className="text-blue-600 hover:underline mb-6 inline-block font-medium">&larr; Back to Library</a>
       
       <div className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col md:flex-row border border-gray-100">
-        {/* Image Section */}
         <div className="md:w-1/3 bg-gray-50 p-8 flex items-center justify-center border-r border-gray-100">
           {product.image_url ? (
-             // eslint-disable-next-line @next/next/no-img-element
              <img 
                src={product.image_url} 
                alt={product.title} 
@@ -71,7 +59,6 @@ export default async function ProductPage({ params }: { params: { id: string } }
           )}
         </div>
 
-        {/* Details Section */}
         <div className="p-8 md:w-2/3 flex flex-col">
           <div className="flex justify-between items-start mb-4">
             <div>
@@ -88,7 +75,6 @@ export default async function ProductPage({ params }: { params: { id: string } }
 
           <hr className="my-6 border-gray-100" />
 
-          {/* Scraped Description */}
           <div className="prose max-w-none text-gray-700 mb-8">
             <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
               📖 About this Item
@@ -98,7 +84,6 @@ export default async function ProductPage({ params }: { params: { id: string } }
             </p>
           </div>
 
-          {/* Technical Specs (Dynamic Rendering) */}
           {detail?.specs && Object.keys(detail.specs).length > 0 && (
             <div className="mt-auto bg-gray-50 rounded-xl p-6">
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Specifications</h3>

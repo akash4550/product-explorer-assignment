@@ -8,7 +8,7 @@ interface Product {
   author: string;
   price: number | string;
   image_url: string;
-  name: string; // Category
+  name: string;
 }
 
 interface ProductGridProps {
@@ -17,7 +17,6 @@ interface ProductGridProps {
 }
 
 export default function ProductGrid({ products, loading }: ProductGridProps) {
-  // 1. Enhanced Skeleton Loader
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -32,7 +31,6 @@ export default function ProductGrid({ products, loading }: ProductGridProps) {
     );
   }
 
-  // 2. Empty State
   if (products.length === 0) {
     return (
       <div className="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
@@ -41,18 +39,15 @@ export default function ProductGrid({ products, loading }: ProductGridProps) {
     );
   }
 
-  // 3. Rendered Grid
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {products.map((p) => (
         <Link 
-          // Prefer internal UUID (p.id) but fallback to scraper ID (p.product_id)
           key={p.id || p.product_id} 
           href={`/product/${p.id || p.product_id}`} 
           className="group bg-white border border-gray-200 rounded-xl p-4 hover:shadow-xl hover:border-blue-300 transition-all duration-300"
         >
           <div className="relative overflow-hidden rounded-lg mb-4 aspect-[3/4]">
-             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src={p.image_url || 'https://via.placeholder.com/300x400?text=No+Image'} 
               alt={p.title} 

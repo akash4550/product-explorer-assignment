@@ -4,29 +4,24 @@ import { useState } from 'react';
 import ProductGrid from '@/components/ProductGrid';
 import CategoryPills from '@/components/CategoryPills';
 
-// Use env variable or default to localhost
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 const fetcher = (url: string) => fetch(`${API_BASE}${url}`).then(r => r.json());
 
 export default function Home() {
-  // 1. Fetch Data with SWR (Auto-updates/caches)
   const { data, mutate, isValidating, error } = useSWR('/products', fetcher, {
-    revalidateOnFocus: false, // Prevents reloading every time you click window
+    revalidateOnFocus: false,
   });
   
   const [filter, setFilter] = useState('All');
   const [isScraping, setIsScraping] = useState(false);
 
-  // 2. Trigger Scraper
   const refresh = async () => {
     setIsScraping(true);
     try {
-      // FIX: Matches the nesting in your NestJS Controller
+      // Calls the newly restored UI endpoint
       const res = await fetch(`${API_BASE}/products/trigger/scrape`);
       if (!res.ok) throw new Error('Scrape failed');
-      
-      // Reload the list immediately after scraping finishes
       await mutate(); 
     } catch (err) {
       alert('Failed to trigger scraper. Check backend console.');
@@ -35,7 +30,6 @@ export default function Home() {
     }
   };
 
-  // 3. Client-side Filtering
   const products = (data || []).filter((p: any) => {
     if (filter === 'All') return true;
     return (p.name || '').toLowerCase() === filter.toLowerCase();
@@ -43,7 +37,6 @@ export default function Home() {
 
   return (
     <main className="p-8 max-w-7xl mx-auto min-h-screen">
-      {/* Header Section */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Product Explorer</h1>
@@ -64,7 +57,6 @@ export default function Home() {
         >
           {isScraping ? (
             <>
-              {/* Simple CSS Spinner */}
               <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
               <span>Scraping...</span>
             </>
@@ -74,19 +66,16 @@ export default function Home() {
         </button>
       </header>
 
-      {/* Filter Tabs */}
       <div className="mb-6">
         <CategoryPills selected={filter} onSelect={setFilter} />
       </div>
 
-      {/* Error State */}
       {error && (
         <div className="p-4 mb-6 bg-red-50 text-red-700 border border-red-100 rounded-lg">
-          ⚠️ Failed to load products. Is the backend running at port 3000?
+          ⚠️ Failed to load products. Is the backend running?
         </div>
       )}
 
-      {/* Grid Content */}
       <div className="transition-opacity duration-300">
         <ProductGrid 
           products={products} 

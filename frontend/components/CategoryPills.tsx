@@ -1,6 +1,5 @@
 import React from 'react';
 
-// Matches the 'name' column in your database/CSV
 const CATEGORIES = ['All', 'Book', 'Course', 'Project'];
 
 interface CategoryPillsProps {
@@ -16,7 +15,6 @@ export default function CategoryPills({ selected, onSelect }: CategoryPillsProps
       </span>
       
       {CATEGORIES.map(category => {
-        // Case-insensitive comparison for better UX
         const isActive = selected.toLowerCase() === category.toLowerCase();
         
         return (

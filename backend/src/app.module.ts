@@ -1,4 +1,3 @@
-// ... other imports
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
@@ -11,9 +10,6 @@ import { ProductDetail } from './products/product-detail.entity';
     ConfigModule.forRoot(),
     TypeOrmModule.forRootAsync({
       useFactory: () => {
-        // 🚨 LOGIC FIX:
-        // Only use Postgres if a Host is explicitly provided.
-        // Otherwise, fallback to SQLite (even in Production).
         const isPostgres = !!process.env.POSTGRES_HOST;
 
         if (isPostgres) {
@@ -25,11 +21,10 @@ import { ProductDetail } from './products/product-detail.entity';
             password: process.env.POSTGRES_PASSWORD,
             database: process.env.POSTGRES_DB,
             entities: [Product, ProductDetail],
-            synchronize: true, // Auto-create tables
+            synchronize: true,
           };
         }
 
-        // Default to SQLite (For Render Free Tier)
         return {
           type: 'sqlite',
           database: 'shopping.sqlite',

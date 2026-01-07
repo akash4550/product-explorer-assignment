@@ -7,7 +7,7 @@ export interface ScrapedItem {
   author: string;
   price: number;
   image_url: string;
-  name: string; // Category or 'Book'
+  name: string;
   source_url: string;
   detail?: {
     description: string;
@@ -19,9 +19,6 @@ export interface ScrapedItem {
 export class WorldOfBooksScraper {
   private readonly logger = new Logger(WorldOfBooksScraper.name);
 
-  /**
-   * Main Entry Point: Determines if the URL is a single product or a category
-   */
   async scrape(url: string): Promise<ScrapedItem[]> {
     this.logger.log(`🚀 Launching Playwright for: ${url}`);
 
@@ -39,12 +36,10 @@ export class WorldOfBooksScraper {
 
     try {
       if (url.includes('/products/')) {
-        // CASE A: It is a Single Product Page
         this.logger.log('✨ Detected Single Product URL');
         const item = await this.scrapeSingleProduct(page, url);
         if (item) results.push(item);
       } else {
-        // CASE B: It is a Category Page (List of books)
         this.logger.log('📂 Detected Category URL');
         const items = await this.scrapeCategory(page, url);
         results.push(...items);
@@ -58,25 +53,20 @@ export class WorldOfBooksScraper {
     return results;
   }
 
-  /**
-   * Scrape a list of books from a category page
-   */
   private async scrapeCategory(page: Page, url: string): Promise<ScrapedItem[]> {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-    // Find first 5 book links
-    const links = await page.$$eval('a[href*="/products/"]', (elements) => 
+    const links = await page.$$eval('a[href*="/products/"]', (elements) =>
       elements
         .map((el: any) => el.href)
-        .filter(href => href.length > 30) 
-        .slice(0, 5) // Limit to 5
+        .filter(href => href.length > 30)
+        .slice(0, 5)
     );
 
     this.logger.log(`Found ${links.length} books in this category.`);
     const items: ScrapedItem[] = [];
 
     for (const link of links) {
-      // Random delay to be polite
       await new Promise(r => setTimeout(r, 1000 + Math.random() * 2000));
       const item = await this.scrapeSingleProduct(page, link);
       if (item) items.push(item);
@@ -85,9 +75,6 @@ export class WorldOfBooksScraper {
     return items;
   }
 
-  /**
-   * Scrape details from a single product page
-   */
   private async scrapeSingleProduct(page: Page, url: string): Promise<ScrapedItem | null> {
     try {
       this.logger.log(`   ➡️ Visiting: ${url}`);
@@ -104,7 +91,7 @@ export class WorldOfBooksScraper {
       });
 
       const rawId = url.split('/').pop() || 'unknown';
-      const cleanId = rawId.split('?')[0]; 
+      const cleanId = rawId.split('?')[0];
       const price = parseFloat(data.priceText.replace(/[^0-9.]/g, '')) || 0;
 
       return {
@@ -117,7 +104,7 @@ export class WorldOfBooksScraper {
         source_url: url,
         detail: {
           description: data.desc,
-          specs: {} 
+          specs: {}
         }
       };
     } catch (e) {

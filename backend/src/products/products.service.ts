@@ -12,10 +12,6 @@ export class ProductsService {
     private productsRepo: Repository<Product>,
   ) {}
 
-  /**
-   * Fetch all products for the grid. 
-   * Includes 'details' so the frontend can check if a description exists.
-   */
   async findAll(): Promise<Product[]> {
     return this.productsRepo.find({
       order: { created_at: 'DESC' },
@@ -23,17 +19,13 @@ export class ProductsService {
     });
   }
 
-  /**
-   * Smart Lookup: Finds a product by UUID (database ID) OR 'product_id' (Scraper ID).
-   * This prevents 404s when users refresh a URL like /product/wob-12345
-   */
   async findOne(identifier: string): Promise<Product> {
     const product = await this.productsRepo.findOne({
       where: [
-        { id: identifier },        // Check UUID
-        { product_id: identifier } // Check Scraper ID
+        { id: identifier },
+        { product_id: identifier },
       ],
-      relations: ['details'], // Always load details for the specific product page
+      relations: ['details'],
     });
 
     if (!product) {
@@ -43,21 +35,15 @@ export class ProductsService {
     return product;
   }
 
-  /**
-   * Upsert (Update or Insert) a Product.
-   * Returns the saved entity so the Controller can pass it to ProductDetailService.
-   */
   async upsertOne(data: Partial<Product>): Promise<Product> {
     try {
-      let product = await this.productsRepo.findOne({ 
-        where: { product_id: data.product_id } 
+      let product = await this.productsRepo.findOne({
+        where: { product_id: data.product_id },
       });
 
       if (product) {
-        // Update existing record
         product = this.productsRepo.merge(product, data);
       } else {
-        // Create new record
         product = this.productsRepo.create(data);
       }
 

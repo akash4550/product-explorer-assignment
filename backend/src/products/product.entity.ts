@@ -4,7 +4,7 @@ import { ProductDetail } from './product-detail.entity';
 @Entity()
 export class Product {
   @PrimaryGeneratedColumn('uuid')
-  id!: string; // Added '!' to fix TS2564
+  id!: string;
 
   @Column({ unique: true })
   product_id!: string;
