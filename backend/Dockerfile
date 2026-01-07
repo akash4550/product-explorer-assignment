@@ -1,6 +1,7 @@
 FROM node:20-bookworm
 
 # 1. Install system dependencies for Playwright
+# Fixed: librandr2 -> libxrandr2
 RUN apt-get update && apt-get install -y \
     libnss3 \
     libnspr4 \
@@ -12,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     libxcomposite1 \
     libxdamage1 \
     libxfixes3 \
-    librandr2 \
+    libxrandr2 \
     libgbm1 \
     libasound2 \
     libpango-1.0-0 \
@@ -23,7 +24,7 @@ WORKDIR /usr/src/app
 
 COPY package.json package-lock.json* ./
 
-# 🚨 CHANGE THIS LINE: Use 'install' instead of 'ci' to bypass lockfile mismatch
+# Use install to avoid lockfile issues
 RUN npm install
 
 # Install Playwright browsers
