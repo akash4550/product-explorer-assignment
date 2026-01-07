@@ -5,25 +5,26 @@ import { ProductsController } from './products.controller';
 import { Product } from './product.entity';
 import { ProductDetail } from './product-detail.entity';
 import { ProductDetailService } from './product-detail.service';
+// 1. Import the Scraper
+import { WorldOfBooksScraper } from '../scraper/world-of-books.scraper';
 
 @Module({
-  // 1. Register Repositories: This makes @InjectRepository(Product) work in your services
+  // Register Repositories so @InjectRepository works
   imports: [
     TypeOrmModule.forFeature([Product, ProductDetail])
   ],
   
-  // 2. Register Business Logic
+  // Register Services AND the Scraper
   providers: [
     ProductsService, 
-    ProductDetailService
+    ProductDetailService,
+    WorldOfBooksScraper // <--- Added this provider to fix the error
   ],
   
-  // 3. Expose API Endpoints
   controllers: [
     ProductsController
   ],
   
-  // 4. Allow other modules to use these services (Scalability)
   exports: [
     ProductsService, 
     ProductDetailService
