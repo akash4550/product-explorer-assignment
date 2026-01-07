@@ -26,8 +26,9 @@ async function seed() {
     const productRepo = dataSource.getRepository(Product);
     const detailRepo = dataSource.getRepository(ProductDetail);
 
-    await detailRepo.delete({});
-    await productRepo.delete({});
+    // 🚨 FIX: Using clear() instead of delete({}) to bypass the safety error
+    await detailRepo.clear();
+    await productRepo.clear();
 
     const csvPath = path.join(__dirname, '../books_data.csv');
     
@@ -43,13 +44,12 @@ async function seed() {
     });
 
     for (const record of records) {
-      // 🚨 FIXED PROPERTY NAMES TO MATCH YOUR ENTITIES
       const product = productRepo.create({
         title: record.Title,
-        image_url: record.image, // Changed from imageUrl to image_url
+        image_url: record.image, 
         price: parseFloat(record.Price.replace(/[^0-9.]/g, '')) || 0,
         url: 'https://www.worldofbooks.com',
-      } as any); // Using 'as any' temporarily to bypass strict property checks if naming is slightly off
+      } as any); 
       
       const savedProduct = await productRepo.save(product);
 
