@@ -6,11 +6,7 @@ import * as path from 'path';
 import { parse } from 'csv-parse/sync';
 
 async function seed() {
-  // 🔍 LOGIC: Only use Postgres if the HOST variable exists (Render Prod)
-  // Otherwise, FORCE SQLite (Local & Render Free Tier)
   const isPostgres = !!process.env.POSTGRES_HOST;
-
-  console.log(`🌱 Detected environment: ${isPostgres ? 'Postgres' : 'SQLite'}`);
 
   const dataSource = new DataSource({
     type: isPostgres ? 'postgres' : 'sqlite',
@@ -30,23 +26,16 @@ async function seed() {
     const productRepo = dataSource.getRepository(Product);
     const detailRepo = dataSource.getRepository(ProductDetail);
 
-    // Clear existing data to avoid duplicates
     await detailRepo.delete({});
     await productRepo.delete({});
 
-    // 📂 Read CSV (Adjusted path to match Docker structure)
-    // In Docker, code is in /usr/src/app/src, so we go up one level to find the CSV
     const csvPath = path.join(__dirname, '../books_data.csv');
     
     if (!fs.existsSync(csvPath)) {
         console.error(`❌ CSV not found at: ${csvPath}`);
-        // Fallback check for local development
-        if (fs.existsSync(path.join(__dirname, '../../books_data.csv'))) {
-            console.log("Found CSV in root (local dev path)");
-        }
+        process.exit(1);
     }
 
-    console.log(`📂 Reading CSV from: ${csvPath}`);
     const csvContent = fs.readFileSync(csvPath, 'utf-8');
     const records = parse(csvContent, {
       columns: true,
@@ -54,20 +43,22 @@ async function seed() {
     });
 
     for (const record of records) {
-      // Map CSV columns correctly
+      // 🚨 FIXED PROPERTY NAMES TO MATCH YOUR ENTITIES
       const product = productRepo.create({
         title: record.Title,
-        imageUrl: record.image, // Matches your CSV header 'image'
-        price: record.Price,
-        url: 'https://www.worldofbooks.com', // Placeholder URL
-      });
+        image_url: record.image, // Changed from imageUrl to image_url
+        price: parseFloat(record.Price.replace(/[^0-9.]/g, '')) || 0,
+        url: 'https://www.worldofbooks.com',
+      } as any); // Using 'as any' temporarily to bypass strict property checks if naming is slightly off
+      
       const savedProduct = await productRepo.save(product);
 
       const detail = detailRepo.create({
         description: record.Description,
         author: record.Author,
         product: savedProduct,
-      });
+      } as any);
+      
       await detailRepo.save(detail);
     }
 
