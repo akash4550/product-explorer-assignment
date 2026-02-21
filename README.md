@@ -33,14 +33,17 @@ CI/CD Ready: Configured for continuous deployment with zero-configuration trigge
 
 ⚙️ Development Setup
 Using Docker (Recommended)
-Bash
 # Clone the repo
 git clone https://github.com/Akshay-Lakwal/product-explorer.git
+
 cd product-explorer
 
 # Spin up the entire stack
+
 docker-compose up --build
+
 Manual Setup
+
 Backend: Navigate to /backend, run npm install, and npm run dev.
 
 Frontend: Navigate to /frontend, run npm install, and npm start.
