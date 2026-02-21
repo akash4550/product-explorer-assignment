@@ -23,27 +23,3 @@ product-explorer-assignment/
 ├── frontend/           # Client-side UI application
 ├── docker-compose.yml  # Docker configuration for multi-container orchestration
 └── README.md
-
-🚀 Key Engineering Features
-Automated Data Pipeline: Triggers headless browser instances to scrape and transform raw HTML into structured JSON.
-
-Decoupled API Design: The backend acts as a standalone service, allowing the frontend to be swapped or scaled independently.
-
-CI/CD Ready: Configured for continuous deployment with zero-configuration triggers on Git push.
-
-⚙️ Development Setup
-Using Docker (Recommended)
-# Clone the repo
-git clone https://github.com/Akshay-Lakwal/product-explorer.git
-
-cd product-explorer
-
-# Spin up the entire stack
-
-docker-compose up --build
-
-Manual Setup
-
-Backend: Navigate to /backend, run npm install, and npm run dev.
-
-Frontend: Navigate to /frontend, run npm install, and npm start.
